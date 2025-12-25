@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sentinel Control</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark"></div>
+          <div>
+            <div class="brand-title">SENTINEL FIRE CONTROL</div>
+            <div class="brand-sub">Integrated Air Defense Simulation</div>
+          </div>
+        </div>
+        <div class="top-stats">
+          <div class="status-item top-stat">
+            <span class="label">BEST</span>
+            <span class="value" id="profileBest">0</span>
+          </div>
+          <div class="status-item top-stat">
+            <span class="label">TOTAL</span>
+            <span class="value" id="profileTotalIntercepts">0</span>
+          </div>
+          <div class="status-item top-stat">
+            <span class="label">LAUNCHES</span>
+            <span class="value" id="profileLaunches">0</span>
+          </div>
+          <div class="status-item top-stat">
+            <span class="label">UPGRADES</span>
+            <span class="value" id="profileUpgrades">0</span>
+          </div>
+          <div class="status-item top-stat">
+            <span class="label">SESSIONS</span>
+            <span class="value" id="profileSessions">0</span>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button id="profileBtn" class="ghost tutorial-btn">PROFILES</button>
+          <button id="tutorialBtn" class="ghost tutorial-btn">TUTORIAL</button>
+        </div>
+      </header>
+
+      <main class="layout">
+        <aside class="left-panel">
+          <div class="panel-title">UPGRADE BAY</div>
+          <div class="upgrade-list" id="upgradeList"></div>
+        </aside>
+
+        <section class="main-panel">
+          <div class="panel-title">ENGAGEMENT DISPLAY</div>
+          <div class="status-bar">
+            <div class="status-item">
+              <span class="label">DEFCON</span>
+              <span class="value" id="defcon">III</span>
+            </div>
+            <div class="status-item">
+              <span class="label">TRACKS</span>
+              <span class="value" id="trackCount">0</span>
+            </div>
+            <div class="status-item">
+              <span class="label">CREDITS</span>
+              <span class="value" id="credits">0</span>
+            </div>
+            <div class="status-item">
+              <span class="label">ALERT</span>
+              <span class="value" id="alertState">GREEN</span>
+            </div>
+          </div>
+          <div class="display">
+            <canvas id="battlefield" width="900" height="520"></canvas>
+            <div class="overlay">
+              <div class="overlay-item">RANGE RINGS: 10km / 20km / 30km</div>
+              <div class="overlay-item">RADAR MODE: AESA SWEEP</div>
+              <div class="overlay-item">EW PROFILE: ADAPTIVE</div>
+            </div>
+          </div>
+          <div class="controls">
+            <button id="launchInterceptor" class="primary">LAUNCH INTERCEPTOR [L]</button>
+            <button id="autoDefense" class="ghost">AUTO DEFENSE: OFF</button>
+            <button id="audioToggle" class="ghost">AUDIO: OFF</button>
+            <button id="pauseSim" class="ghost">PAUSE</button>
+            <div class="slider">
+              <label for="spawnRate">THREAT RATE</label>
+              <input id="spawnRate" type="range" min="1" max="6" value="3" />
+            </div>
+          </div>
+
+          <div class="panel-title">ASSET INVENTORY</div>
+          <div class="asset-grid" id="assetGrid">
+            <div class="asset-card">
+              <div class="asset-label">INTERCEPTORS</div>
+              <div class="asset-value" id="interceptorCount">24</div>
+            </div>
+            <div class="asset-card">
+              <div class="asset-label">RADAR RANGE</div>
+              <div class="asset-value" id="radarRange">28km</div>
+            </div>
+            <div class="asset-card">
+              <div class="asset-label">EW STRENGTH</div>
+              <div class="asset-value" id="ewStrength">MED</div>
+            </div>
+            <div class="asset-card">
+              <div class="asset-label">HIT PROB</div>
+              <div class="asset-value" id="hitProb">72%</div>
+            </div>
+            <div class="asset-card">
+              <div class="asset-label">TRACK CHANNELS</div>
+              <div class="asset-value" id="trackChannels">1</div>
+            </div>
+            <div class="asset-card">
+              <div class="asset-label">REACTOR LOAD</div>
+              <div class="asset-value" id="reactorLoad">64%</div>
+            </div>
+            <div class="asset-card">
+              <div class="asset-label">BATTERY TEMP</div>
+              <div class="asset-value" id="batteryTemp">NOMINAL</div>
+            </div>
+            <div class="asset-card">
+              <div class="asset-label">BASE INTEGRITY</div>
+              <div class="asset-value" id="baseHealth">100%</div>
+            </div>
+            <div class="asset-card">
+              <div class="asset-label">THREAT GROUP</div>
+              <div class="asset-value" id="threatGroup">I</div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="side-panel">
+          <div class="panel-title">TACTICAL LOG</div>
+          <div class="log" id="log"></div>
+
+          <div class="panel-title">LEADERBOARD</div>
+          <div class="leaderboard" id="leaderboard"></div>
+        </aside>
+      </main>
+    </div>
+
+    <div class="modal" id="endScreen" aria-hidden="true">
+      <div class="modal-card">
+        <div class="panel-title">MISSION SUMMARY</div>
+        <div class="summary">
+          <div class="summary-item">
+            <span class="label">INTERCEPTS</span>
+            <span class="value" id="summaryKills">0</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">INTERCEPTORS LAUNCHED</span>
+            <span class="value" id="summaryLaunched">0</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">UPGRADES COMPLETED</span>
+            <span class="value" id="summaryUpgrades">0</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">INBOUND STOPPED</span>
+            <span class="value" id="summaryStopped">0</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">INBOUND TOTAL</span>
+            <span class="value" id="summaryInbound">0</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">CREDITS</span>
+            <span class="value" id="summaryCredits">0</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">THREAT GROUP</span>
+            <span class="value" id="summaryGroup">I</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">BASE STATUS</span>
+            <span class="value" id="summaryStatus">DESTROYED</span>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost" id="quitBtn">QUIT TO CONSOLE</button>
+          <button class="primary" id="restartBtn">RESTART SIM</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal" id="tutorialScreen" aria-hidden="true">
+      <div class="modal-card tutorial-card">
+        <div class="panel-title">TACTICAL TUTORIAL</div>
+        <div class="tutorial-body">
+          <p id="tutorialTitle" class="tutorial-title">Welcome to Sentinel</p>
+          <p id="tutorialText" class="tutorial-text">
+            Defend the base by launching interceptors against inbound threats. Radar, EW, and launcher upgrades
+            increase your survival odds as the threat groups escalate.
+          </p>
+          <div class="tutorial-points" id="tutorialPoints"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost" id="tutorialClose">EXIT</button>
+          <button class="ghost" id="tutorialPrev">BACK</button>
+          <button class="primary" id="tutorialNext">NEXT</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal" id="profileScreen" aria-hidden="true">
+      <div class="modal-card profile-card">
+        <div class="panel-title">SELECT PROFILE</div>
+        <div class="profile-list" id="profileList">
+          <button class="profile-btn" data-profile="alpha">ALPHA</button>
+          <button class="profile-btn" data-profile="bravo">BRAVO</button>
+          <button class="profile-btn" data-profile="charlie">CHARLIE</button>
+        </div>
+        <div class="profile-actions">
+          <button class="ghost" id="renameProfile">RENAME</button>
+          <button class="ghost" id="resetProfile">RESET</button>
+          <button class="primary" id="closeProfile">DONE</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="main.js"></script>
+  </body>
+</html>
