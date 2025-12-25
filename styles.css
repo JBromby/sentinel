@@ -76,10 +76,25 @@ body {
   gap: 24px;
 }
 
+.status-bar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(47, 255, 174, 0.2);
+  background: rgba(8, 16, 16, 0.7);
+}
+
 .status-item {
   display: grid;
   gap: 6px;
   text-align: right;
+}
+
+.status-bar .status-item {
+  text-align: left;
 }
 
 .status-item .label {
@@ -95,13 +110,14 @@ body {
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.7fr);
+  grid-template-columns: minmax(220px, 0.6fr) minmax(0, 1.4fr) minmax(260px, 0.7fr);
   gap: 18px;
   align-items: start;
 }
 
 .main-panel,
-.side-panel {
+.side-panel,
+.left-panel {
   background: linear-gradient(160deg, rgba(18, 36, 36, 0.95), rgba(9, 16, 16, 0.95));
   border-radius: var(--radius);
   border: 1px solid rgba(47, 255, 174, 0.15);
@@ -112,7 +128,8 @@ body {
 }
 
 .main-panel::before,
-.side-panel::before {
+.side-panel::before,
+.left-panel::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -199,33 +216,36 @@ button {
 
 .asset-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 18px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.main-panel .asset-grid {
+  margin-bottom: 0;
 }
 
 .asset-card {
   background: rgba(9, 18, 18, 0.85);
   border: 1px solid rgba(47, 255, 174, 0.2);
-  padding: 12px;
+  padding: 8px 10px;
   border-radius: 12px;
 }
 
 .asset-label {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--muted);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .asset-value {
-  font-size: 18px;
+  font-size: 14px;
   color: var(--accent);
 }
 
 .upgrade-list {
   display: grid;
-  gap: 10px;
-  margin-bottom: 18px;
+  gap: 8px;
 }
 
 .upgrade-row {
@@ -240,6 +260,7 @@ button {
   color: var(--ink);
   border: 1px solid rgba(47, 255, 174, 0.25);
   text-align: left;
+  font-size: 11px;
 }
 
 .upgrade:disabled {
@@ -323,13 +344,21 @@ button {
   animation: reveal 0.8s ease-out 0.2s both;
 }
 
+.left-panel {
+  animation: reveal 0.8s ease-out 0.15s both;
+}
+
 @media (max-width: 1000px) {
   .layout {
     grid-template-columns: 1fr;
   }
 
-  .status {
-    display: none;
+  .status-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .asset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

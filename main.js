@@ -9,6 +9,7 @@ const interceptorCountEl = document.getElementById("interceptorCount");
 const radarRangeEl = document.getElementById("radarRange");
 const ewStrengthEl = document.getElementById("ewStrength");
 const hitProbEl = document.getElementById("hitProb");
+const trackChannelsEl = document.getElementById("trackChannels");
 const reactorLoadEl = document.getElementById("reactorLoad");
 const batteryTempEl = document.getElementById("batteryTemp");
 const baseHealthEl = document.getElementById("baseHealth");
@@ -131,6 +132,7 @@ const state = {
     hitProb: 0.72,
     interceptorSpeed: 4.6,
     interceptorAccel: 0.12,
+    launcherTracks: 1,
   },
   credits: 0,
   baseHealth: 100,
@@ -152,6 +154,7 @@ const upgrades = [
   {
     id: "radar",
     name: "RADAR ARRAYS",
+    key: "1",
     maxLevel: 4,
     baseCost: 40,
     costScale: 1.3,
@@ -165,6 +168,7 @@ const upgrades = [
   {
     id: "ew",
     name: "EW SUITE",
+    key: "2",
     maxLevel: 3,
     baseCost: 35,
     costScale: 1.35,
@@ -178,6 +182,7 @@ const upgrades = [
   {
     id: "phit",
     name: "INTERCEPTOR P(HIT)",
+    key: "3",
     maxLevel: 4,
     baseCost: 45,
     costScale: 1.3,
@@ -191,6 +196,7 @@ const upgrades = [
   {
     id: "speed",
     name: "BOOSTER PACKS",
+    key: "4",
     maxLevel: 4,
     baseCost: 50,
     costScale: 1.35,
@@ -205,6 +211,7 @@ const upgrades = [
   {
     id: "capacity",
     name: "MAGAZINE EXPANSION",
+    key: "5",
     maxLevel: 4,
     baseCost: 30,
     costScale: 1.25,
@@ -218,6 +225,7 @@ const upgrades = [
   {
     id: "armor",
     name: "BASE HARDENING",
+    key: "6",
     maxLevel: 4,
     baseCost: 35,
     costScale: 1.3,
@@ -231,6 +239,7 @@ const upgrades = [
   {
     id: "auto",
     name: "FIRE CONTROL AI",
+    key: "7",
     maxLevel: 4,
     baseCost: 45,
     costScale: 1.3,
@@ -242,8 +251,23 @@ const upgrades = [
     },
   },
   {
+    id: "launcher",
+    name: "LAUNCHER AI",
+    key: "8",
+    maxLevel: 3,
+    baseCost: 70,
+    costScale: 1.45,
+    description: "Adds multi-target tracking so interceptors split across threats.",
+    current: () => `${state.upgrades.launcherTracks} targets`,
+    next: () => `+1 target (to ${Math.min(4, state.upgrades.launcherTracks + 1)})`,
+    apply: () => {
+      state.upgrades.launcherTracks = Math.min(4, state.upgrades.launcherTracks + 1);
+    },
+  },
+  {
     id: "stock",
     name: "REPLENISH INTERCEPTORS",
+    key: "r",
     maxLevel: 99,
     baseCost: 30,
     costScale: 1.1,
@@ -282,6 +306,7 @@ function renderUpgradeList() {
     const level = getUpgradeLevel(upgrade.id);
     const maxed = level >= upgrade.maxLevel;
     const cost = upgradeCost(upgrade);
+    const keyLabel = upgrade.key ? ` [${upgrade.key.toUpperCase()}]` : "";
 
     const row = document.createElement("div");
     row.className = "upgrade-row";
@@ -292,7 +317,7 @@ function renderUpgradeList() {
     button.dataset.sound = "upgrade";
     button.disabled = maxed;
     const label = maxed ? `${upgrade.name} MAX` : `${upgrade.name} LVL ${level + 1}`;
-    button.textContent = `${label} · ${cost} CR`;
+    button.textContent = `${label}${keyLabel} · ${cost} CR`;
 
     const info = document.createElement("button");
     info.className = "info-button";
@@ -303,6 +328,32 @@ function renderUpgradeList() {
     row.append(button, info);
     upgradeListEl.append(row);
   });
+}
+
+function attemptUpgrade(id, source = "click") {
+  const upgrade = upgrades.find((entry) => entry.id === id);
+  if (!upgrade) return;
+  const level = getUpgradeLevel(id);
+  if (level >= upgrade.maxLevel) {
+    logEvent("UPGRADE MAXED", "!");
+    return;
+  }
+  const cost = upgradeCost(upgrade);
+  if (state.credits < cost) {
+    playNoCredits();
+    logEvent("INSUFFICIENT CREDITS", "!");
+    return;
+  }
+  if (source === "click" || source === "key") {
+    playUpgradeClick();
+  }
+  state.credits -= cost;
+  upgrade.apply();
+  state.upgradeLevels[id] = level + 1;
+  state.upgradesCompleted += 1;
+  renderUpgradeList();
+  updateUI();
+  logEvent(`${upgrade.name} UPGRADED`, "+");
 }
 
 function logEvent(message, tone = "") {
@@ -366,6 +417,7 @@ function updateUI() {
   interceptorCountEl.textContent = `${state.inventory.interceptors}/${state.inventory.maxInterceptors}`;
   radarRangeEl.textContent = `${state.upgrades.radarRangeKm}km`;
   hitProbEl.textContent = `${Math.round(state.upgrades.hitProb * 100)}%`;
+  trackChannelsEl.textContent = state.upgrades.launcherTracks;
   creditsEl.textContent = state.credits;
   baseHealthEl.textContent = `${Math.max(0, state.baseHealth)}%`;
   threatGroupEl.textContent = ["I", "II", "III", "IV", "V"][state.threatGroup - 1];
@@ -440,7 +492,7 @@ function launchInterceptor() {
     logEvent("INTERCEPTOR STOCK DEPLETED", "!");
     return;
   }
-  const target = getNearestThreat();
+  const target = getOptimalThreat();
   if (!target) {
     logEvent("NO LOCK - RADAR CLEAR", "-");
     return;
@@ -463,6 +515,15 @@ function launchInterceptor() {
   logEvent("INTERCEPTOR LAUNCHED", "+");
 }
 
+function getThreatAssignments() {
+  const assignments = new Map();
+  for (const interceptor of state.interceptors) {
+    if (!interceptor.target || interceptor.dead) continue;
+    assignments.set(interceptor.target, (assignments.get(interceptor.target) || 0) + 1);
+  }
+  return assignments;
+}
+
 function getNearestThreat() {
   const rangePx = state.upgrades.radarRangeKm / kmPerPixel;
   let nearest = null;
@@ -477,6 +538,37 @@ function getNearestThreat() {
     }
   }
   return nearest;
+}
+
+function getOptimalThreat() {
+  const assignments = getThreatAssignments();
+  const rangePx = state.upgrades.radarRangeKm / kmPerPixel;
+  const distinctTargets = assignments.size;
+  let candidate = null;
+  let best = Infinity;
+  let unassignedCandidate = null;
+  let unassignedBest = Infinity;
+
+  for (const missile of state.missiles) {
+    const dx = missile.x - state.base.x;
+    const dy = missile.y - state.base.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist >= rangePx) continue;
+    const assignedCount = assignments.get(missile) || 0;
+    if (dist < best) {
+      best = dist;
+      candidate = missile;
+    }
+    if (assignedCount === 0 && dist < unassignedBest) {
+      unassignedBest = dist;
+      unassignedCandidate = missile;
+    }
+  }
+
+  if (distinctTargets < state.upgrades.launcherTracks && unassignedCandidate) {
+    return unassignedCandidate;
+  }
+  return candidate;
 }
 
 function updateMissiles(dt) {
@@ -740,7 +832,7 @@ function update(dt) {
     }
   }
 
-  const lockTarget = getNearestThreat();
+  const lockTarget = getOptimalThreat();
   if (lockTarget && !state.radarLocked) {
     playRadarLock();
     state.radarLocked = true;
@@ -783,6 +875,24 @@ document.addEventListener("click", (event) => {
   playClick();
 });
 
+document.addEventListener("keydown", (event) => {
+  if (event.repeat) return;
+  if (endScreenEl.classList.contains("active")) return;
+  const tag = event.target?.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+  const key = event.key.toLowerCase();
+  if (key === "l" || key === " ") {
+    event.preventDefault();
+    launchInterceptor();
+    return;
+  }
+  const upgrade = upgrades.find((entry) => entry.key === key);
+  if (upgrade) {
+    event.preventDefault();
+    attemptUpgrade(upgrade.id, "key");
+  }
+});
+
 audioBtn.addEventListener("click", () => {
   initAudio();
   audioEnabled = !audioEnabled;
@@ -812,28 +922,8 @@ upgradeListEl.addEventListener("click", (event) => {
   }
 
   if (button.classList.contains("upgrade")) {
-    playUpgradeClick();
     const id = button.dataset.upgrade;
-    const upgrade = upgrades.find((entry) => entry.id === id);
-    if (!upgrade) return;
-    const level = getUpgradeLevel(id);
-    if (level >= upgrade.maxLevel) {
-      logEvent("UPGRADE MAXED", "!");
-      return;
-    }
-    const cost = upgradeCost(upgrade);
-    if (state.credits < cost) {
-      playNoCredits();
-      logEvent("INSUFFICIENT CREDITS", "!");
-      return;
-    }
-    state.credits -= cost;
-    upgrade.apply();
-    state.upgradeLevels[id] = level + 1;
-    state.upgradesCompleted += 1;
-    renderUpgradeList();
-    updateUI();
-    logEvent(`${upgrade.name} UPGRADED`, "+");
+    attemptUpgrade(id, "click");
   }
 });
 

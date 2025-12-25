@@ -16,29 +16,34 @@
             <div class="brand-sub">Integrated Air Defense Simulation</div>
           </div>
         </div>
-        <div class="status">
-          <div class="status-item">
-            <span class="label">DEFCON</span>
-            <span class="value" id="defcon">III</span>
-          </div>
-          <div class="status-item">
-            <span class="label">TRACKS</span>
-            <span class="value" id="trackCount">0</span>
-          </div>
-          <div class="status-item">
-            <span class="label">CREDITS</span>
-            <span class="value" id="credits">0</span>
-          </div>
-          <div class="status-item">
-            <span class="label">ALERT</span>
-            <span class="value" id="alertState">GREEN</span>
-          </div>
-        </div>
       </header>
 
       <main class="layout">
+        <aside class="left-panel">
+          <div class="panel-title">UPGRADE BAY</div>
+          <div class="upgrade-list" id="upgradeList"></div>
+        </aside>
+
         <section class="main-panel">
           <div class="panel-title">ENGAGEMENT DISPLAY</div>
+          <div class="status-bar">
+            <div class="status-item">
+              <span class="label">DEFCON</span>
+              <span class="value" id="defcon">III</span>
+            </div>
+            <div class="status-item">
+              <span class="label">TRACKS</span>
+              <span class="value" id="trackCount">0</span>
+            </div>
+            <div class="status-item">
+              <span class="label">CREDITS</span>
+              <span class="value" id="credits">0</span>
+            </div>
+            <div class="status-item">
+              <span class="label">ALERT</span>
+              <span class="value" id="alertState">GREEN</span>
+            </div>
+          </div>
           <div class="display">
             <canvas id="battlefield" width="900" height="520"></canvas>
             <div class="overlay">
@@ -48,7 +53,7 @@
             </div>
           </div>
           <div class="controls">
-            <button id="launchInterceptor" class="primary">LAUNCH INTERCEPTOR</button>
+            <button id="launchInterceptor" class="primary">LAUNCH INTERCEPTOR [L]</button>
             <button id="autoDefense" class="ghost">AUTO DEFENSE: OFF</button>
             <button id="audioToggle" class="ghost">AUDIO: OFF</button>
             <button id="pauseSim" class="ghost">PAUSE</button>
@@ -57,9 +62,7 @@
               <input id="spawnRate" type="range" min="1" max="6" value="3" />
             </div>
           </div>
-        </section>
 
-        <aside class="side-panel">
           <div class="panel-title">ASSET INVENTORY</div>
           <div class="asset-grid" id="assetGrid">
             <div class="asset-card">
@@ -79,6 +82,10 @@
               <div class="asset-value" id="hitProb">72%</div>
             </div>
             <div class="asset-card">
+              <div class="asset-label">TRACK CHANNELS</div>
+              <div class="asset-value" id="trackChannels">1</div>
+            </div>
+            <div class="asset-card">
               <div class="asset-label">REACTOR LOAD</div>
               <div class="asset-value" id="reactorLoad">64%</div>
             </div>
@@ -95,10 +102,9 @@
               <div class="asset-value" id="threatGroup">I</div>
             </div>
           </div>
+        </section>
 
-          <div class="panel-title">UPGRADE BAY</div>
-          <div class="upgrade-list" id="upgradeList"></div>
-
+        <aside class="side-panel">
           <div class="panel-title">TACTICAL LOG</div>
           <div class="log" id="log"></div>
 
