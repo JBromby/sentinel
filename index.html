@@ -16,6 +16,32 @@
             <div class="brand-sub">Integrated Air Defense Simulation</div>
           </div>
         </div>
+        <div class="top-stats">
+          <div class="status-item top-stat">
+            <span class="label">BEST</span>
+            <span class="value" id="profileBest">0</span>
+          </div>
+          <div class="status-item top-stat">
+            <span class="label">TOTAL</span>
+            <span class="value" id="profileTotalIntercepts">0</span>
+          </div>
+          <div class="status-item top-stat">
+            <span class="label">LAUNCHES</span>
+            <span class="value" id="profileLaunches">0</span>
+          </div>
+          <div class="status-item top-stat">
+            <span class="label">UPGRADES</span>
+            <span class="value" id="profileUpgrades">0</span>
+          </div>
+          <div class="status-item top-stat">
+            <span class="label">SESSIONS</span>
+            <span class="value" id="profileSessions">0</span>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button id="profileBtn" class="ghost tutorial-btn">PROFILES</button>
+          <button id="tutorialBtn" class="ghost tutorial-btn">TUTORIAL</button>
+        </div>
       </header>
 
       <main class="layout">
@@ -154,6 +180,41 @@
         <div class="modal-actions">
           <button class="ghost" id="quitBtn">QUIT TO CONSOLE</button>
           <button class="primary" id="restartBtn">RESTART SIM</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal" id="tutorialScreen" aria-hidden="true">
+      <div class="modal-card tutorial-card">
+        <div class="panel-title">TACTICAL TUTORIAL</div>
+        <div class="tutorial-body">
+          <p id="tutorialTitle" class="tutorial-title">Welcome to Sentinel</p>
+          <p id="tutorialText" class="tutorial-text">
+            Defend the base by launching interceptors against inbound threats. Radar, EW, and launcher upgrades
+            increase your survival odds as the threat groups escalate.
+          </p>
+          <div class="tutorial-points" id="tutorialPoints"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost" id="tutorialClose">EXIT</button>
+          <button class="ghost" id="tutorialPrev">BACK</button>
+          <button class="primary" id="tutorialNext">NEXT</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal" id="profileScreen" aria-hidden="true">
+      <div class="modal-card profile-card">
+        <div class="panel-title">SELECT PROFILE</div>
+        <div class="profile-list" id="profileList">
+          <button class="profile-btn" data-profile="alpha">ALPHA</button>
+          <button class="profile-btn" data-profile="bravo">BRAVO</button>
+          <button class="profile-btn" data-profile="charlie">CHARLIE</button>
+        </div>
+        <div class="profile-actions">
+          <button class="ghost" id="renameProfile">RENAME</button>
+          <button class="ghost" id="resetProfile">RESET</button>
+          <button class="primary" id="closeProfile">DONE</button>
         </div>
       </div>
     </div>

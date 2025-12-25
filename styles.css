@@ -47,6 +47,34 @@ body {
   animation: slide-in 0.8s ease-out;
 }
 
+.top-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.top-stats {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.top-stats .status-item {
+  text-align: left;
+}
+
+.top-stat {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(47, 255, 174, 0.2);
+  background: rgba(8, 16, 16, 0.7);
+}
+
+.tutorial-btn {
+  font-size: 11px;
+  padding: 8px 12px;
+}
+
 .brand {
   display: flex;
   gap: 14px;
@@ -196,6 +224,11 @@ button {
   box-shadow: var(--glow);
 }
 
+.highlight {
+  box-shadow: 0 0 18px rgba(255, 179, 71, 0.8), 0 0 32px rgba(255, 179, 71, 0.4);
+  animation: pulse 1s ease-in-out infinite;
+}
+
 .ghost {
   background: rgba(14, 26, 26, 0.85);
   color: var(--ink);
@@ -263,6 +296,11 @@ button {
   font-size: 11px;
 }
 
+.practice-focus {
+  border-color: rgba(255, 179, 71, 0.8);
+  box-shadow: 0 0 14px rgba(255, 179, 71, 0.5);
+}
+
 .upgrade:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -286,7 +324,7 @@ button {
   border-radius: 12px;
   border: 1px solid rgba(47, 255, 174, 0.2);
   background: rgba(6, 14, 14, 0.8);
-  padding: 10px;
+  padding: 12px;
   font-size: 11px;
   color: var(--muted);
   overflow: hidden;
@@ -336,6 +374,18 @@ button {
   }
 }
 
+@keyframes pulse {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
 .main-panel {
   animation: reveal 0.8s ease-out 0.1s both;
 }
@@ -348,6 +398,50 @@ button {
   animation: reveal 0.8s ease-out 0.15s both;
 }
 
+
+.profile-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.profile-btn {
+  font-family: var(--font);
+  border: 1px solid rgba(47, 255, 174, 0.25);
+  background: rgba(14, 26, 26, 0.85);
+  color: var(--ink);
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.profile-btn.active {
+  background: rgba(47, 255, 174, 0.2);
+  color: var(--accent);
+  box-shadow: var(--glow);
+}
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.profile-actions button {
+  flex: 1;
+  font-size: 11px;
+  padding: 8px 10px;
+}
+
 @media (max-width: 1000px) {
   .layout {
     grid-template-columns: 1fr;
@@ -358,6 +452,11 @@ button {
   }
 
   .asset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .top-stats {
+    grid-auto-flow: row;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -383,6 +482,47 @@ button {
   border: 1px solid rgba(47, 255, 174, 0.2);
   box-shadow: var(--shadow);
   padding: 20px;
+}
+
+.tutorial-card {
+  width: min(560px, 92vw);
+}
+
+.profile-card {
+  width: min(420px, 92vw);
+}
+
+.tutorial-body {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0 18px;
+}
+
+.tutorial-title {
+  color: var(--accent);
+  font-size: 16px;
+}
+
+.tutorial-text {
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.tutorial-points {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.tutorial-point {
+  display: flex;
+  gap: 8px;
+}
+
+.tutorial-point span {
+  color: var(--accent);
 }
 
 .summary {

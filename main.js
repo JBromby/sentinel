@@ -27,6 +27,25 @@ const summaryGroupEl = document.getElementById("summaryGroup");
 const summaryStatusEl = document.getElementById("summaryStatus");
 const quitBtn = document.getElementById("quitBtn");
 const restartBtn = document.getElementById("restartBtn");
+const tutorialBtn = document.getElementById("tutorialBtn");
+const profileBtn = document.getElementById("profileBtn");
+const tutorialScreenEl = document.getElementById("tutorialScreen");
+const tutorialTitleEl = document.getElementById("tutorialTitle");
+const tutorialTextEl = document.getElementById("tutorialText");
+const tutorialPointsEl = document.getElementById("tutorialPoints");
+const tutorialCloseBtn = document.getElementById("tutorialClose");
+const tutorialPrevBtn = document.getElementById("tutorialPrev");
+const tutorialNextBtn = document.getElementById("tutorialNext");
+const profileListEl = document.getElementById("profileList");
+const profileBestEl = document.getElementById("profileBest");
+const profileTotalInterceptsEl = document.getElementById("profileTotalIntercepts");
+const profileLaunchesEl = document.getElementById("profileLaunches");
+const profileUpgradesEl = document.getElementById("profileUpgrades");
+const profileSessionsEl = document.getElementById("profileSessions");
+const renameProfileBtn = document.getElementById("renameProfile");
+const resetProfileBtn = document.getElementById("resetProfile");
+const profileScreenEl = document.getElementById("profileScreen");
+const closeProfileBtn = document.getElementById("closeProfile");
 
 const launchBtn = document.getElementById("launchInterceptor");
 const autoBtn = document.getElementById("autoDefense");
@@ -148,7 +167,84 @@ const state = {
   autoFireTimer: 0,
   lastRadarPingAt: 0,
   radarLocked: false,
+  tutorialStep: 0,
+  practiceMode: false,
+  practiceTimer: 0,
+  practicePhase: 0,
+  practiceHold: false,
+  practiceFocusId: null,
+  practiceOverwhelmSent: false,
+  activeProfile: "alpha",
 };
+
+const profileSlots = [
+  { id: "alpha", label: "ALPHA" },
+  { id: "bravo", label: "BRAVO" },
+  { id: "charlie", label: "CHARLIE" },
+];
+
+const tutorialSteps = [
+  {
+    title: "Welcome to Sentinel",
+    text:
+      "You are a fire-control operator defending the base. Your job is to stop inbound threats before they impact.",
+    points: [
+      "Track count shows active inbound threats on scope.",
+      "Credits are earned per intercept and fund upgrades.",
+      "Threat groups I–V escalate over time with speed and volume.",
+    ],
+  },
+  {
+    title: "Engagement Controls",
+    text:
+      "Launch interceptors manually or enable auto defense. Manual launches are faster but require attention.",
+    points: [
+      "Press L or Space to launch an interceptor.",
+      "Auto Defense launches when a lock is available.",
+      "Radar rings show distance from the base.",
+    ],
+  },
+  {
+    title: "Upgrades & Hotkeys",
+    text:
+      "Upgrades expand your capabilities. Use keyboard shortcuts to stay in the fight without pausing.",
+    points: [
+      "1–7 purchase core upgrades. R replenishes interceptors.",
+      "Launcher AI adds multi-target tracking channels.",
+      "Base hardening reduces impact damage.",
+    ],
+  },
+  {
+    title: "EW & Radar",
+    text:
+      "EW adds guidance noise to incoming threats. Radar range increases how early you can engage.",
+    points: [
+      "Higher EW makes inbound missiles wobble more.",
+      "More radar range means earlier locks and more intercept time.",
+      "Use both to survive higher threat groups.",
+    ],
+  },
+  {
+    title: "Win Conditions",
+    text:
+      "Every impact reduces base integrity. When it hits zero, the mission ends and your score is recorded.",
+    points: [
+      "Try to maximize intercepts before destruction.",
+      "Keep an eye on base integrity and stock levels.",
+      "Use upgrades to extend survivability.",
+    ],
+  },
+  {
+    title: "Practice Round",
+    text:
+      "Run a short practice round with slow threat pacing to learn the controls before full escalation.",
+    points: [
+      "Threat group stays at I with slower spawns.",
+      "Practice ends automatically after a short window.",
+      "Ready to defend? Start practice now.",
+    ],
+  },
+];
 
 const upgrades = [
   {
@@ -316,6 +412,9 @@ function renderUpgradeList() {
     button.dataset.upgrade = upgrade.id;
     button.dataset.sound = "upgrade";
     button.disabled = maxed;
+    if (state.practiceFocusId === upgrade.id) {
+      button.classList.add("practice-focus");
+    }
     const label = maxed ? `${upgrade.name} MAX` : `${upgrade.name} LVL ${level + 1}`;
     button.textContent = `${label}${keyLabel} · ${cost} CR`;
 
@@ -354,6 +453,9 @@ function attemptUpgrade(id, source = "click") {
   renderUpgradeList();
   updateUI();
   logEvent(`${upgrade.name} UPGRADED`, "+");
+  if (state.practiceMode) {
+    handlePracticeUpgrade(id);
+  }
 }
 
 function logEvent(message, tone = "") {
@@ -366,8 +468,94 @@ function logEvent(message, tone = "") {
   }
 }
 
+function profileKey(suffix) {
+  return `sentinel-profile-${state.activeProfile}-${suffix}`;
+}
+
+function profileNameKey(profileId) {
+  return `sentinel-profile-${profileId}-name`;
+}
+
+function getProfileLabel(profileId) {
+  const saved = localStorage.getItem(profileNameKey(profileId));
+  return saved || profileSlots.find((slot) => slot.id === profileId)?.label || profileId.toUpperCase();
+}
+
+function setProfileLabel(profileId, label) {
+  localStorage.setItem(profileNameKey(profileId), label);
+}
+
+function loadActiveProfile() {
+  const saved = localStorage.getItem("sentinel-active-profile");
+  return profileSlots.some((slot) => slot.id === saved) ? saved : "alpha";
+}
+
+function saveActiveProfile() {
+  localStorage.setItem("sentinel-active-profile", state.activeProfile);
+}
+
+function showProfileModal() {
+  profileScreenEl.classList.add("active");
+  profileScreenEl.setAttribute("aria-hidden", "false");
+  renderProfileButtons();
+}
+
+function hideProfileModal() {
+  profileScreenEl.classList.remove("active");
+  profileScreenEl.setAttribute("aria-hidden", "true");
+}
+
+function loadProfileStats() {
+  const raw = localStorage.getItem(profileKey("stats"));
+  if (!raw) {
+    return {
+      bestKills: 0,
+      totalIntercepts: 0,
+      totalLaunches: 0,
+      totalUpgrades: 0,
+      totalSessions: 0,
+    };
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {
+      bestKills: 0,
+      totalIntercepts: 0,
+      totalLaunches: 0,
+      totalUpgrades: 0,
+      totalSessions: 0,
+    };
+  }
+}
+
+function saveProfileStats(stats) {
+  localStorage.setItem(profileKey("stats"), JSON.stringify(stats));
+}
+
+function updateProfileStatsUI() {
+  const stats = loadProfileStats();
+  profileBestEl.textContent = stats.bestKills;
+  profileTotalInterceptsEl.textContent = stats.totalIntercepts;
+  profileLaunchesEl.textContent = stats.totalLaunches;
+  profileUpgradesEl.textContent = stats.totalUpgrades;
+  profileSessionsEl.textContent = stats.totalSessions;
+}
+
+function renderProfileButtons() {
+  const buttons = profileListEl.querySelectorAll("button");
+  buttons.forEach((button) => {
+    const id = button.dataset.profile;
+    button.classList.toggle("active", id === state.activeProfile);
+    button.textContent = getProfileLabel(id);
+  });
+  if (profileBtn) {
+    profileBtn.textContent = `PROFILE: ${getProfileLabel(state.activeProfile)}`;
+  }
+}
+
 function loadLeaderboard() {
-  const raw = localStorage.getItem("sentinel-leaderboard");
+  const raw = localStorage.getItem(profileKey("leaderboard"));
   if (!raw) return [];
   try {
     return JSON.parse(raw);
@@ -377,7 +565,7 @@ function loadLeaderboard() {
 }
 
 function saveLeaderboard(entries) {
-  localStorage.setItem("sentinel-leaderboard", JSON.stringify(entries));
+  localStorage.setItem(profileKey("leaderboard"), JSON.stringify(entries));
 }
 
 function updateLeaderboardUI() {
@@ -401,6 +589,7 @@ function updateLeaderboardUI() {
 }
 
 function recordScore() {
+  if (state.practiceMode) return;
   const entries = loadLeaderboard();
   entries.push({
     kills: state.killCount,
@@ -410,6 +599,15 @@ function recordScore() {
   entries.sort((a, b) => b.kills - a.kills);
   saveLeaderboard(entries.slice(0, 10));
   updateLeaderboardUI();
+
+  const stats = loadProfileStats();
+  stats.bestKills = Math.max(stats.bestKills, state.killCount);
+  stats.totalIntercepts += state.killCount;
+  stats.totalLaunches += state.interceptorsLaunched;
+  stats.totalUpgrades += state.upgradesCompleted;
+  stats.totalSessions += 1;
+  saveProfileStats(stats);
+  updateProfileStatsUI();
 }
 
 function updateUI() {
@@ -450,6 +648,91 @@ function showEndScreen() {
   summaryStatusEl.textContent = "DESTROYED";
   endScreenEl.classList.add("active");
   endScreenEl.setAttribute("aria-hidden", "false");
+}
+
+function showTutorial(step = 0) {
+  state.tutorialStep = Math.max(0, Math.min(tutorialSteps.length - 1, step));
+  const current = tutorialSteps[state.tutorialStep];
+  tutorialTitleEl.textContent = current.title;
+  tutorialTextEl.textContent = current.text;
+  tutorialPointsEl.innerHTML = "";
+  current.points.forEach((point) => {
+    const row = document.createElement("div");
+    row.className = "tutorial-point";
+    row.innerHTML = "<span>•</span><div></div>";
+    row.querySelector("div").textContent = point;
+    tutorialPointsEl.append(row);
+  });
+  tutorialPrevBtn.disabled = state.tutorialStep === 0;
+  tutorialNextBtn.textContent = state.tutorialStep === tutorialSteps.length - 1 ? "START PRACTICE" : "NEXT";
+  tutorialScreenEl.classList.add("active");
+  tutorialScreenEl.setAttribute("aria-hidden", "false");
+}
+
+function hideTutorial() {
+  tutorialScreenEl.classList.remove("active");
+  tutorialScreenEl.setAttribute("aria-hidden", "true");
+}
+
+function startPractice() {
+  state.practiceMode = true;
+  state.practiceTimer = 0;
+  state.practicePhase = 0;
+  state.practiceHold = true;
+  state.practiceFocusId = null;
+  state.practiceOverwhelmSent = false;
+  state.threatGroup = 1;
+  state.threatTimer = 0;
+  state.missiles = [];
+  state.interceptors = [];
+  state.explosions = [];
+  state.credits = 0;
+  state.baseHealth = 100;
+  state.killCount = 0;
+  state.interceptorsLaunched = 0;
+  state.inboundTotal = 0;
+  state.running = true;
+  state.gameOver = false;
+  spawnRateInput.value = 1;
+  state.autoDefense = false;
+  autoBtn.textContent = "AUTO DEFENSE: OFF";
+  autoBtn.classList.remove("primary");
+  autoBtn.classList.add("ghost");
+  launchBtn.classList.add("highlight");
+  spawnMissile();
+  const practiceMissile = state.missiles[state.missiles.length - 1];
+  const rangePx = state.upgrades.radarRangeKm / kmPerPixel;
+  practiceMissile.x = state.base.x + 120;
+  practiceMissile.y = state.base.y - Math.min(rangePx - 40, 260);
+  logEvent("PRACTICE ROUND INITIATED", "+");
+  logEvent("PRACTICE: LAUNCH AN INTERCEPTOR (L/SPACE)", ">");
+  updateUI();
+}
+
+function handlePracticeUpgrade(id) {
+  if (state.practicePhase === 2 && id === "radar") {
+    state.practicePhase = 3;
+    state.practiceFocusId = "stock";
+    const stockUpgrade = upgrades.find((entry) => entry.id === "stock");
+    if (stockUpgrade) {
+      const needed = upgradeCost(stockUpgrade);
+      state.credits = Math.max(state.credits, needed);
+    }
+    logEvent("PRACTICE: REPLENISH INTERCEPTORS (R)", ">");
+    renderUpgradeList();
+    return;
+  }
+  if (state.practicePhase === 3 && id === "stock") {
+    state.practicePhase = 4;
+    state.practiceFocusId = null;
+    state.practiceHold = false;
+    state.practiceTimer = 0;
+    launchBtn.classList.remove("highlight");
+    state.threatGroup = 5;
+    spawnRateInput.value = 6;
+    logEvent("PRACTICE: THREAT WAVE INBOUND - DEFEND", "!");
+    renderUpgradeList();
+  }
 }
 
 function groupProfile() {
@@ -500,6 +783,13 @@ function launchInterceptor() {
   state.inventory.interceptors -= 1;
   state.interceptorsLaunched += 1;
   playLaunch();
+  if (state.practiceMode && state.practicePhase === 0) {
+    state.practiceHold = false;
+    state.practicePhase = 1;
+    state.practiceTimer = 0;
+    launchBtn.classList.remove("highlight");
+    logEvent("PRACTICE: GOOD LAUNCH - TRACK THE INTERCEPT", "+");
+  }
   const interceptor = {
     x: state.base.x,
     y: state.base.y,
@@ -797,14 +1087,47 @@ function drawExplosions() {
 
 function update(dt) {
   if (!state.running) return;
+  if (state.practiceHold) {
+    updateUI();
+    return;
+  }
 
   state.spawnTimer += dt;
   state.threatTimer += dt;
-  const escalationTime = 520 + (state.threatGroup - 1) * 90;
-  if (state.threatTimer > escalationTime && state.threatGroup < 5) {
-    state.threatGroup += 1;
-    state.threatTimer = 0;
-    logEvent(`THREAT GROUP ESCALATED TO ${["I", "II", "III", "IV", "V"][state.threatGroup - 1]}`, "!");
+  if (!state.practiceMode) {
+    const escalationTime = 520 + (state.threatGroup - 1) * 90;
+    if (state.threatTimer > escalationTime && state.threatGroup < 5) {
+      state.threatGroup += 1;
+      state.threatTimer = 0;
+      logEvent(`THREAT GROUP ESCALATED TO ${["I", "II", "III", "IV", "V"][state.threatGroup - 1]}`, "!");
+    }
+  } else if (state.practicePhase < 4) {
+    state.practiceTimer += dt;
+    if (state.practicePhase === 1 && state.practiceTimer > 240) {
+      state.practicePhase = 2;
+      state.practiceHold = true;
+      state.practiceFocusId = "radar";
+      const radarUpgrade = upgrades.find((entry) => entry.id === "radar");
+      if (radarUpgrade) {
+        const needed = upgradeCost(radarUpgrade);
+        state.credits = Math.max(state.credits, needed);
+      }
+      logEvent("PRACTICE: PURCHASE RADAR ARRAYS (1)", ">");
+      renderUpgradeList();
+    }
+  } else if (state.practicePhase === 4) {
+    state.practiceTimer += dt;
+    if (!state.practiceOverwhelmSent && state.practiceTimer > 30) {
+      state.practiceOverwhelmSent = true;
+      for (let i = 0; i < 6; i += 1) {
+        spawnMissile();
+      }
+    }
+    if (state.practiceTimer > 1200) {
+      state.practiceMode = false;
+      logEvent("PRACTICE COMPLETE - FULL SIM READY", "+");
+      state.practicePhase = 5;
+    }
   }
 
   const spawnInterval = 260 / Number(spawnRateInput.value);
@@ -868,6 +1191,25 @@ autoBtn.addEventListener("click", () => {
   autoBtn.classList.toggle("ghost", !state.autoDefense);
 });
 
+tutorialBtn.addEventListener("click", () => {
+  showTutorial(0);
+});
+
+tutorialCloseBtn.addEventListener("click", hideTutorial);
+
+tutorialPrevBtn.addEventListener("click", () => {
+  showTutorial(state.tutorialStep - 1);
+});
+
+tutorialNextBtn.addEventListener("click", () => {
+  if (state.tutorialStep === tutorialSteps.length - 1) {
+    startPractice();
+    hideTutorial();
+    return;
+  }
+  showTutorial(state.tutorialStep + 1);
+});
+
 document.addEventListener("click", (event) => {
   const button = event.target.closest("button");
   if (!button) return;
@@ -878,6 +1220,18 @@ document.addEventListener("click", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.repeat) return;
   if (endScreenEl.classList.contains("active")) return;
+  if (tutorialScreenEl.classList.contains("active")) {
+    if (event.key === "Escape") {
+      hideTutorial();
+    }
+    return;
+  }
+  if (profileScreenEl.classList.contains("active")) {
+    if (event.key === "Escape") {
+      hideProfileModal();
+    }
+    return;
+  }
   const tag = event.target?.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
   const key = event.key.toLowerCase();
@@ -891,6 +1245,48 @@ document.addEventListener("keydown", (event) => {
     event.preventDefault();
     attemptUpgrade(upgrade.id, "key");
   }
+});
+
+profileListEl.addEventListener("click", (event) => {
+  const button = event.target.closest("button");
+  if (!button) return;
+  const profileId = button.dataset.profile;
+  if (!profileId || profileId === state.activeProfile) return;
+  state.activeProfile = profileId;
+  saveActiveProfile();
+  updateProfileStatsUI();
+  updateLeaderboardUI();
+  renderProfileButtons();
+  logEvent(`PROFILE SET: ${profileId.toUpperCase()}`, "+");
+});
+
+profileBtn.addEventListener("click", () => {
+  showProfileModal();
+});
+
+closeProfileBtn.addEventListener("click", () => {
+  hideProfileModal();
+});
+
+renameProfileBtn.addEventListener("click", () => {
+  const current = getProfileLabel(state.activeProfile);
+  const next = window.prompt("Rename profile slot:", current);
+  if (!next) return;
+  const label = next.trim().slice(0, 14);
+  if (!label) return;
+  setProfileLabel(state.activeProfile, label.toUpperCase());
+  renderProfileButtons();
+  logEvent(`PROFILE RENAMED: ${label.toUpperCase()}`, "+");
+});
+
+resetProfileBtn.addEventListener("click", () => {
+  const confirmReset = window.confirm("Reset this profile? This clears stats and leaderboard.");
+  if (!confirmReset) return;
+  localStorage.removeItem(profileKey("stats"));
+  localStorage.removeItem(profileKey("leaderboard"));
+  updateProfileStatsUI();
+  updateLeaderboardUI();
+  logEvent(`PROFILE RESET: ${state.activeProfile.toUpperCase()}`, "!");
 });
 
 audioBtn.addEventListener("click", () => {
@@ -937,8 +1333,15 @@ restartBtn.addEventListener("click", () => {
   window.location.reload();
 });
 
+state.activeProfile = loadActiveProfile();
+renderProfileButtons();
+updateProfileStatsUI();
 updateUI();
 updateLeaderboardUI();
 renderUpgradeList();
+if (!localStorage.getItem("sentinel-profile-initialized")) {
+  showProfileModal();
+  localStorage.setItem("sentinel-profile-initialized", "true");
+}
 logEvent("SYSTEM ONLINE", "+");
 requestAnimationFrame(loop);
