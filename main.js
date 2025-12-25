@@ -29,16 +29,92 @@ const restartBtn = document.getElementById("restartBtn");
 
 const launchBtn = document.getElementById("launchInterceptor");
 const autoBtn = document.getElementById("autoDefense");
+const audioBtn = document.getElementById("audioToggle");
 const pauseBtn = document.getElementById("pauseSim");
 const spawnRateInput = document.getElementById("spawnRate");
 const upgradeListEl = document.getElementById("upgradeList");
 
 const kmPerPixel = 0.06;
 
+let audioEnabled = false;
+let audioCtx = null;
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume();
+  }
+}
+
+function playTone(freq, duration, type = "sine", gain = 0.04) {
+  if (!audioEnabled || !audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const amp = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  amp.gain.value = 0;
+  osc.connect(amp);
+  amp.connect(audioCtx.destination);
+  const now = audioCtx.currentTime;
+  amp.gain.linearRampToValueAtTime(gain, now + 0.01);
+  amp.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+  osc.start(now);
+  osc.stop(now + duration + 0.02);
+}
+
+function playInterceptSuccess() {
+  playTone(840, 0.12, "sine", 0.05);
+  setTimeout(() => playTone(1020, 0.1, "sine", 0.04), 120);
+}
+
+function playInterceptFail() {
+  playTone(180, 0.18, "sawtooth", 0.04);
+}
+
+function playClick() {
+  playTone(520, 0.07, "triangle", 0.03);
+}
+
+function playUpgradeClick() {
+  playTone(660, 0.08, "triangle", 0.04);
+}
+
+function playLaunch() {
+  playTone(520, 0.08, "triangle", 0.04);
+}
+
+function playNoCredits() {
+  playTone(240, 0.1, "sawtooth", 0.03);
+  setTimeout(() => playTone(180, 0.12, "sawtooth", 0.025), 90);
+}
+
+function playRadarLock() {
+  playTone(620, 0.07, "sine", 0.03);
+  setTimeout(() => playTone(820, 0.07, "sine", 0.03), 80);
+}
+
+function playRadarPing(level) {
+  const tones = [360, 520, 760];
+  const freq = tones[Math.min(tones.length - 1, Math.max(0, level - 1))];
+  playTone(freq, 0.07, "sine", 0.03);
+}
+
+function playImpact() {
+  playTone(140, 0.22, "triangle", 0.05);
+}
+
+function playGameOver() {
+  playTone(420, 0.12, "triangle", 0.05);
+  setTimeout(() => playTone(260, 0.18, "triangle", 0.05), 140);
+}
+
 const state = {
   running: true,
   autoDefense: false,
   lastTime: 0,
+  time: 0,
   spawnTimer: 0,
   threatTimer: 0,
   missiles: [],
@@ -68,6 +144,8 @@ const state = {
   upgradeLevels: {},
   autoFireDelay: 18,
   autoFireTimer: 0,
+  lastRadarPingAt: 0,
+  radarLocked: false,
 };
 
 const upgrades = [
@@ -211,6 +289,7 @@ function renderUpgradeList() {
     const button = document.createElement("button");
     button.className = "upgrade";
     button.dataset.upgrade = upgrade.id;
+    button.dataset.sound = "upgrade";
     button.disabled = maxed;
     const label = maxed ? `${upgrade.name} MAX` : `${upgrade.name} LVL ${level + 1}`;
     button.textContent = `${label} · ${cost} CR`;
@@ -351,6 +430,7 @@ function spawnMissile() {
     reward: profile.reward,
     target,
     wobble: Math.random() * Math.PI * 2,
+    ringLevel: 0,
   });
   state.inboundTotal += 1;
 }
@@ -367,6 +447,7 @@ function launchInterceptor() {
   }
   state.inventory.interceptors -= 1;
   state.interceptorsLaunched += 1;
+  playLaunch();
   const interceptor = {
     x: state.base.x,
     y: state.base.y,
@@ -399,6 +480,10 @@ function getNearestThreat() {
 }
 
 function updateMissiles(dt) {
+  const rangePx = state.upgrades.radarRangeKm / kmPerPixel;
+  const ringOuter = rangePx;
+  const ringMid = rangePx * (2 / 3);
+  const ringInner = rangePx / 3;
   for (const missile of state.missiles) {
     const dx = missile.target.x - missile.x;
     const dy = missile.target.y - missile.y;
@@ -415,6 +500,21 @@ function updateMissiles(dt) {
 
     missile.x += missile.vx * dt;
     missile.y += missile.vy * dt;
+
+    const bx = missile.x - state.base.x;
+    const by = missile.y - state.base.y;
+    const baseDist = Math.hypot(bx, by);
+    let ringLevel = 0;
+    if (baseDist <= ringOuter) ringLevel = 1;
+    if (baseDist <= ringMid) ringLevel = 2;
+    if (baseDist <= ringInner) ringLevel = 3;
+    if (ringLevel > missile.ringLevel) {
+      missile.ringLevel = ringLevel;
+      if (state.time - state.lastRadarPingAt > 140) {
+        playRadarPing(ringLevel);
+        state.lastRadarPingAt = state.time;
+      }
+    }
   }
 }
 
@@ -477,9 +577,11 @@ function resolveEngagements() {
         state.credits += interceptor.target.reward;
         state.killCount += 1;
         renderUpgradeList();
+        playInterceptSuccess();
         logEvent("INTERCEPT CONFIRMED", "*");
       } else {
         interceptor.dead = true;
+        playInterceptFail();
         logEvent("INTERCEPT FAILED", "!");
       }
     }
@@ -500,11 +602,13 @@ function checkBaseImpact() {
       missile.dead = true;
       state.explosions.push({ x: state.base.x, y: state.base.y, life: 60, impact: true });
       state.baseHealth = Math.max(0, state.baseHealth - state.baseDamage);
+      playImpact();
       logEvent("BASE IMPACT", "!");
       if (state.baseHealth <= 0 && !state.gameOver) {
         state.gameOver = true;
         state.running = false;
         logEvent("BASE DESTROYED - SIM ENDED", "!");
+        playGameOver();
         state.explosions.push({
           x: state.base.x,
           y: state.base.y,
@@ -532,6 +636,22 @@ function drawBackground() {
     ctx.stroke();
   }
   ctx.restore();
+
+  const ewIntensity = state.upgrades.ewStrength;
+  if (ewIntensity > 0.05) {
+    ctx.save();
+    ctx.strokeStyle = `rgba(47,255,174,${0.08 + ewIntensity * 0.18})`;
+    ctx.lineWidth = 1.2;
+    const pulse = (state.time / 1000) * (0.6 + ewIntensity);
+    const maxRadius = Math.max(80, rangePx * 0.9);
+    for (let i = 0; i < 3; i += 1) {
+      const radius = (pulse * 70 + i * 90) % maxRadius;
+      ctx.beginPath();
+      ctx.arc(state.base.x, state.base.y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
 
   ctx.save();
   ctx.fillStyle = "rgba(47,255,174,0.2)";
@@ -620,6 +740,14 @@ function update(dt) {
     }
   }
 
+  const lockTarget = getNearestThreat();
+  if (lockTarget && !state.radarLocked) {
+    playRadarLock();
+    state.radarLocked = true;
+  } else if (!lockTarget && state.radarLocked) {
+    state.radarLocked = false;
+  }
+
   updateUI();
 }
 
@@ -633,6 +761,7 @@ function render() {
 function loop(timestamp) {
   const dt = Math.min(1.6, (timestamp - state.lastTime) / 16.6);
   state.lastTime = timestamp;
+  state.time = timestamp;
   update(dt);
   render();
   requestAnimationFrame(loop);
@@ -645,6 +774,24 @@ autoBtn.addEventListener("click", () => {
   autoBtn.textContent = `AUTO DEFENSE: ${state.autoDefense ? "ON" : "OFF"}`;
   autoBtn.classList.toggle("primary", state.autoDefense);
   autoBtn.classList.toggle("ghost", !state.autoDefense);
+});
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("button");
+  if (!button) return;
+  if (button.dataset.sound === "upgrade") return;
+  playClick();
+});
+
+audioBtn.addEventListener("click", () => {
+  initAudio();
+  audioEnabled = !audioEnabled;
+  audioBtn.textContent = `AUDIO: ${audioEnabled ? "ON" : "OFF"}`;
+  audioBtn.classList.toggle("primary", audioEnabled);
+  audioBtn.classList.toggle("ghost", !audioEnabled);
+  if (audioEnabled) {
+    playTone(700, 0.08, "sine", 0.03);
+  }
 });
 
 pauseBtn.addEventListener("click", () => {
@@ -665,6 +812,7 @@ upgradeListEl.addEventListener("click", (event) => {
   }
 
   if (button.classList.contains("upgrade")) {
+    playUpgradeClick();
     const id = button.dataset.upgrade;
     const upgrade = upgrades.find((entry) => entry.id === id);
     if (!upgrade) return;
@@ -675,6 +823,7 @@ upgradeListEl.addEventListener("click", (event) => {
     }
     const cost = upgradeCost(upgrade);
     if (state.credits < cost) {
+      playNoCredits();
       logEvent("INSUFFICIENT CREDITS", "!");
       return;
     }
