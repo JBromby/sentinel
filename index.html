@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sentinel Control</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark"></div>
+          <div>
+            <div class="brand-title">SENTINEL FIRE CONTROL</div>
+            <div class="brand-sub">Integrated Air Defense Simulation</div>
+          </div>
+        </div>
+        <div class="status">
+          <div class="status-item">
+            <span class="label">DEFCON</span>
+            <span class="value" id="defcon">III</span>
+          </div>
+          <div class="status-item">
+            <span class="label">TRACKS</span>
+            <span class="value" id="trackCount">0</span>
+          </div>
+          <div class="status-item">
+            <span class="label">CREDITS</span>
+            <span class="value" id="credits">0</span>
+          </div>
+          <div class="status-item">
+            <span class="label">ALERT</span>
+            <span class="value" id="alertState">GREEN</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="main-panel">
+          <div class="panel-title">ENGAGEMENT DISPLAY</div>
+          <div class="display">
+            <canvas id="battlefield" width="900" height="520"></canvas>
+            <div class="overlay">
+              <div class="overlay-item">RANGE RINGS: 10km / 20km / 30km</div>
+              <div class="overlay-item">RADAR MODE: AESA SWEEP</div>
+              <div class="overlay-item">EW PROFILE: ADAPTIVE</div>
+            </div>
+          </div>
+          <div class="controls">
+            <button id="launchInterceptor" class="primary">LAUNCH INTERCEPTOR</button>
+            <button id="autoDefense" class="ghost">AUTO DEFENSE: OFF</button>
+            <button id="pauseSim" class="ghost">PAUSE</button>
+            <div class="slider">
+              <label for="spawnRate">THREAT RATE</label>
+              <input id="spawnRate" type="range" min="1" max="6" value="3" />
+            </div>
+          </div>
+        </section>
+
+        <aside class="side-panel">
+          <div class="panel-title">ASSET INVENTORY</div>
+          <div class="asset-grid" id="assetGrid">
+            <div class="asset-card">
+              <div class="asset-label">INTERCEPTORS</div>
+              <div class="asset-value" id="interceptorCount">24</div>
+            </div>
+            <div class="asset-card">
+              <div class="asset-label">RADAR RANGE</div>
+              <div class="asset-value" id="radarRange">28km</div>
+            </div>
+            <div class="asset-card">
+              <div class="asset-label">EW STRENGTH</div>
+              <div class="asset-value" id="ewStrength">MED</div>
+            </div>
+            <div class="asset-card">
+              <div class="asset-label">HIT PROB</div>
+              <div class="asset-value" id="hitProb">72%</div>
+            </div>
+            <div class="asset-card">
+              <div class="asset-label">REACTOR LOAD</div>
+              <div class="asset-value" id="reactorLoad">64%</div>
+            </div>
+            <div class="asset-card">
+              <div class="asset-label">BATTERY TEMP</div>
+              <div class="asset-value" id="batteryTemp">NOMINAL</div>
+            </div>
+            <div class="asset-card">
+              <div class="asset-label">BASE INTEGRITY</div>
+              <div class="asset-value" id="baseHealth">100%</div>
+            </div>
+            <div class="asset-card">
+              <div class="asset-label">THREAT GROUP</div>
+              <div class="asset-value" id="threatGroup">I</div>
+            </div>
+          </div>
+
+          <div class="panel-title">UPGRADE BAY</div>
+          <div class="upgrade-list" id="upgradeList"></div>
+
+          <div class="panel-title">TACTICAL LOG</div>
+          <div class="log" id="log"></div>
+
+          <div class="panel-title">LEADERBOARD</div>
+          <div class="leaderboard" id="leaderboard"></div>
+        </aside>
+      </main>
+    </div>
+
+    <div class="modal" id="endScreen" aria-hidden="true">
+      <div class="modal-card">
+        <div class="panel-title">MISSION SUMMARY</div>
+        <div class="summary">
+          <div class="summary-item">
+            <span class="label">INTERCEPTS</span>
+            <span class="value" id="summaryKills">0</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">INTERCEPTORS LAUNCHED</span>
+            <span class="value" id="summaryLaunched">0</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">UPGRADES COMPLETED</span>
+            <span class="value" id="summaryUpgrades">0</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">INBOUND STOPPED</span>
+            <span class="value" id="summaryStopped">0</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">INBOUND TOTAL</span>
+            <span class="value" id="summaryInbound">0</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">CREDITS</span>
+            <span class="value" id="summaryCredits">0</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">THREAT GROUP</span>
+            <span class="value" id="summaryGroup">I</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">BASE STATUS</span>
+            <span class="value" id="summaryStatus">DESTROYED</span>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost" id="quitBtn">QUIT TO CONSOLE</button>
+          <button class="primary" id="restartBtn">RESTART SIM</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="main.js"></script>
+  </body>
+</html>
