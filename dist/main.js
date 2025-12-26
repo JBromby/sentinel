@@ -59,6 +59,8 @@ const kmPerPixel = 0.06;
 let audioEnabled = false;
 let audioCtx = null;
 
+const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+
 function initAudio() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -175,6 +177,7 @@ const state = {
   practiceFocusId: null,
   practiceOverwhelmSent: false,
   activeProfile: "alpha",
+  showHotkeys: !isTouchDevice,
 };
 
 const profileSlots = [
@@ -402,7 +405,7 @@ function renderUpgradeList() {
     const level = getUpgradeLevel(upgrade.id);
     const maxed = level >= upgrade.maxLevel;
     const cost = upgradeCost(upgrade);
-    const keyLabel = upgrade.key ? ` [${upgrade.key.toUpperCase()}]` : "";
+    const keyLabel = state.showHotkeys && upgrade.key ? ` [${upgrade.key.toUpperCase()}]` : "";
 
     const row = document.createElement("div");
     row.className = "upgrade-row";
@@ -552,6 +555,10 @@ function renderProfileButtons() {
   if (profileBtn) {
     profileBtn.textContent = `PROFILE: ${getProfileLabel(state.activeProfile)}`;
   }
+}
+
+function updateLaunchButtonLabel() {
+  launchBtn.textContent = state.showHotkeys ? "LAUNCH INTERCEPTOR [L]" : "LAUNCH INTERCEPTOR";
 }
 
 function loadLeaderboard() {
@@ -1232,6 +1239,7 @@ document.addEventListener("keydown", (event) => {
     }
     return;
   }
+  if (!state.showHotkeys) return;
   const tag = event.target?.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
   const key = event.key.toLowerCase();
@@ -1339,6 +1347,7 @@ updateProfileStatsUI();
 updateUI();
 updateLeaderboardUI();
 renderUpgradeList();
+updateLaunchButtonLabel();
 if (!localStorage.getItem("sentinel-profile-initialized")) {
   showProfileModal();
   localStorage.setItem("sentinel-profile-initialized", "true");

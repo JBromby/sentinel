@@ -5,6 +5,7 @@ const trackCountEl = document.getElementById("trackCount");
 const defconEl = document.getElementById("defcon");
 const alertStateEl = document.getElementById("alertState");
 const creditsEl = document.getElementById("credits");
+const currentKillsEl = document.getElementById("currentKills");
 const interceptorCountEl = document.getElementById("interceptorCount");
 const radarRangeEl = document.getElementById("radarRange");
 const ewStrengthEl = document.getElementById("ewStrength");
@@ -58,6 +59,8 @@ const kmPerPixel = 0.06;
 
 let audioEnabled = false;
 let audioCtx = null;
+
+const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
 
 function initAudio() {
   if (!audioCtx) {
@@ -175,6 +178,7 @@ const state = {
   practiceFocusId: null,
   practiceOverwhelmSent: false,
   activeProfile: "alpha",
+  showHotkeys: !isTouchDevice,
 };
 
 const profileSlots = [
@@ -402,7 +406,7 @@ function renderUpgradeList() {
     const level = getUpgradeLevel(upgrade.id);
     const maxed = level >= upgrade.maxLevel;
     const cost = upgradeCost(upgrade);
-    const keyLabel = upgrade.key ? ` [${upgrade.key.toUpperCase()}]` : "";
+    const keyLabel = state.showHotkeys && upgrade.key ? ` [${upgrade.key.toUpperCase()}]` : "";
 
     const row = document.createElement("div");
     row.className = "upgrade-row";
@@ -554,6 +558,10 @@ function renderProfileButtons() {
   }
 }
 
+function updateLaunchButtonLabel() {
+  launchBtn.textContent = state.showHotkeys ? "LAUNCH INTERCEPTOR [L]" : "LAUNCH INTERCEPTOR";
+}
+
 function loadLeaderboard() {
   const raw = localStorage.getItem(profileKey("leaderboard"));
   if (!raw) return [];
@@ -612,6 +620,7 @@ function recordScore() {
 
 function updateUI() {
   trackCountEl.textContent = state.missiles.length;
+  currentKillsEl.textContent = state.killCount;
   interceptorCountEl.textContent = `${state.inventory.interceptors}/${state.inventory.maxInterceptors}`;
   radarRangeEl.textContent = `${state.upgrades.radarRangeKm}km`;
   hitProbEl.textContent = `${Math.round(state.upgrades.hitProb * 100)}%`;
@@ -1232,6 +1241,7 @@ document.addEventListener("keydown", (event) => {
     }
     return;
   }
+  if (!state.showHotkeys) return;
   const tag = event.target?.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
   const key = event.key.toLowerCase();
@@ -1339,6 +1349,7 @@ updateProfileStatsUI();
 updateUI();
 updateLeaderboardUI();
 renderUpgradeList();
+updateLaunchButtonLabel();
 if (!localStorage.getItem("sentinel-profile-initialized")) {
   showProfileModal();
   localStorage.setItem("sentinel-profile-initialized", "true");
